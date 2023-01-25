@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = "genpb/protos";
+
+
+service StreamingPracticesService {
+
+    rpc ServerSideStreamFunc (BasicRequest) returns (stream BasicResponse) {}
+   
+    rpc ClientSideStreamFunc (stream BasicRequest) returns (BasicResponse) {}
+
+    rpc BiDirectionalStreamFunc  (stream BasicRequest) returns (stream BasicResponse) {}
+  }
+  
+  message BasicRequest {
+    string HashCode = 1;
+  }
+  
+  message BasicResponse {
+    string HashCode = 1;
+  }
+
+/*
+  protoc --go_out=. --go_opt=paths=my.proto --go-grpc_out=. --go-grpc_opt=paths=my.proto
+  
+    protoc --go_out=. --go-grpc_out=.  my.proto
+
+   
+
+python -m grpc_tools.protoc -I _proto_ --python_out=. --grpc_python_out=. _proto_/python_service_list.proto 
+
+  */
