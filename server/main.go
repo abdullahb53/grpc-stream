@@ -53,6 +53,10 @@ func main() {
 }
 
 func (s *myEventServer) ServerSideStreamFunc(c *genpb.BasicRequest, stream genpb.StreamingPracticesService_ServerSideStreamFuncServer) error {
+	//
+	// I want to send some stream-data to client.
+	// i: iterator. until 10.
+	//
 	i := -1
 	for {
 		i++
@@ -60,9 +64,13 @@ func (s *myEventServer) ServerSideStreamFunc(c *genpb.BasicRequest, stream genpb
 			break
 		}
 
+		// Generate random data for streaming.
 		randomVal := random.Int()
 		strRandomVal := strconv.Itoa(randomVal)
 
+		//
+		// Sending data.
+		//
 		err := stream.Send(&genpb.BasicResponse{
 			HashCode: strRandomVal,
 		})
