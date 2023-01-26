@@ -5,8 +5,10 @@ package main
 import (
 	"fmt"
 	genpb "grpc_stream/genpb/protos"
+	"io"
 	random "math/rand"
 	"strconv"
+	"time"
 
 	"log"
 	"net"
@@ -59,14 +61,15 @@ func (s *myEventServer) ServerSideStreamFunc(c *genpb.BasicRequest, stream genpb
 	//
 	i := -1
 	for {
+		time.Sleep(2 * time.Second)
 		i++
 		if i > 10 {
 			break
 		}
 
 		// Generate random data for streaming.
-		randomVal := random.Int()
-		strRandomVal := strconv.Itoa(randomVal)
+		_ = random.Int()
+		strRandomVal := strconv.Itoa(i + 3456)
 
 		//
 		// Sending data.
@@ -78,13 +81,24 @@ func (s *myEventServer) ServerSideStreamFunc(c *genpb.BasicRequest, stream genpb
 			fmt.Println("stream sender error.", err)
 			return err
 		}
-		fmt.Println("[i] i send this value to client..", strRandomVal)
+		fmt.Println("[SERVER] [SENDING STREAM DATA TO CLIENT]: ", strRandomVal)
 
 	}
 	return nil
 }
 
 func (s *myEventServer) ClientSideStreamFunc(stream genpb.StreamingPracticesService_ClientSideStreamFuncServer) error {
+
+	for {
+		val, err := stream.Recv()
+		if err == io.EOF {
+			fmt.Println("[Server]EOF Detect. ")
+			break
+		}
+
+		fmt.Println("[SERVER] [GETTING STREAM DATA FROM CLIENT]: ", val)
+
+	}
 
 	return status.Errorf(codes.Unimplemented, "method ClientSideStreamFunc not implemented")
 }

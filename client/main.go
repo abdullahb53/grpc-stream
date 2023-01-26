@@ -6,6 +6,9 @@ import (
 	genpb "grpc_stream/genpb/protos"
 	"io"
 	"log"
+	random "math/rand"
+	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
 )
@@ -36,16 +39,24 @@ func main() {
 	client := genpb.NewStreamingPracticesServiceClient(conn)
 
 	ctx := context.Background()
-	//
-	// We have a stream now.
-	//
+
+	// We have a server-side stream now.
 	stream, err := client.ServerSideStreamFunc(ctx, &genpb.BasicRequest{
-		HashCode: "[I'm request from CLIENT.]",
+		HashCode: "[I'm one request from CLIENT.]",
 	})
 	if err != nil {
 		log.Println("resp error from client:", err, "\nresponse:", stream)
 	}
 
+	// We have a client-side stream now.
+	streamForCli, err := client.ClientSideStreamFunc(ctx)
+	if err != nil {
+		log.Println("resp error from client:", err, "\nresponse:", streamForCli)
+	}
+
+	//
+	// Server-side streaming data.
+	//
 	go func() {
 		for {
 			// Getting streaming data.
@@ -54,7 +65,29 @@ func main() {
 				fmt.Println("EOF Detect.")
 				break
 			}
-			fmt.Println(val)
+			fmt.Println("[CLIENT] [GETTING STREAM DATA FROM SERVER]: ", val)
+		}
+	}()
+
+	//
+	// Client-side streaming data.
+	//
+	go func() {
+		i := 0
+		for {
+			time.Sleep(1 * time.Second)
+			if i > 10 {
+				break
+			}
+			i++
+
+			_ = random.Int()
+			strRandomVal := strconv.Itoa(i + 12)
+			streamForCli.Send(&genpb.BasicRequest{
+				HashCode: strRandomVal,
+			})
+			fmt.Println("[Client] [SENDING STREAM DATA TO SERVER]: ", strRandomVal)
+
 		}
 	}()
 
