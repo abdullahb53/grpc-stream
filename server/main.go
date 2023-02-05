@@ -14,8 +14,6 @@ import (
 	"net"
 
 	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type myEventServer struct {
@@ -81,7 +79,7 @@ func (s *myEventServer) ServerSideStreamFunc(c *genpb.BasicRequest, stream genpb
 			fmt.Println("stream sender error.", err)
 			return err
 		}
-		fmt.Println("[SERVER] [SENDING STREAM DATA TO CLIENT]: ", strRandomVal)
+		fmt.Println("[SERVER] [SRVSTREAM] [SENDING STREAM DATA TO CLIENT]: ", strRandomVal)
 
 	}
 	return nil
@@ -93,16 +91,56 @@ func (s *myEventServer) ClientSideStreamFunc(stream genpb.StreamingPracticesServ
 		val, err := stream.Recv()
 		if err == io.EOF {
 			fmt.Println("[Server]EOF Detect. ")
-			break
+			return nil
+		}
+		if err != nil {
+			return err
 		}
 
-		fmt.Println("[SERVER] [GETTING STREAM DATA FROM CLIENT]: ", val)
+		fmt.Println("[SERVER] [CLISTREAM] [GETTING STREAM DATA FROM CLIENT]: ", val)
 
 	}
 
-	return status.Errorf(codes.Unimplemented, "method ClientSideStreamFunc not implemented")
 }
 func (s *myEventServer) BiDirectionalStreamFunc(stream genpb.StreamingPracticesService_BiDirectionalStreamFuncServer) error {
 
-	return status.Errorf(codes.Unimplemented, "method BiDirectionalStreamFunc not implemented")
+	i := -1
+	for {
+		time.Sleep(2 * time.Second)
+		i++
+		if i > 10 {
+			break
+		}
+
+		// Generate random data for streaming.
+		_ = random.Int()
+		strRandomVal := strconv.Itoa(i + 7106223)
+
+		//
+		// Sending data.
+		//
+		err := stream.Send(&genpb.BasicResponse{
+			HashCode: strRandomVal,
+		})
+		if err != nil {
+			fmt.Println("stream sender error.", err)
+			return err
+		}
+		fmt.Println("[SERVER] [BIDIRECT] [SENDING STREAM DATA TO CLIENT]: ", strRandomVal)
+
+	}
+
+	go func() {
+		for {
+			val, err := stream.Recv()
+			if err == io.EOF {
+				fmt.Println("[Server]EOF Detect. ")
+				break
+			}
+
+			fmt.Println("[SERVER] [BIDIRECT] [GETTING STREAM DATA FROM CLIENT]: ", val)
+		}
+	}()
+
+	return nil
 }

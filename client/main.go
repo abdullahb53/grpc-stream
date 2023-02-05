@@ -41,17 +41,11 @@ func main() {
 	ctx := context.Background()
 
 	// We have a server-side stream now.
-	stream, err := client.ServerSideStreamFunc(ctx, &genpb.BasicRequest{
+	streamForServ, err := client.ServerSideStreamFunc(ctx, &genpb.BasicRequest{
 		HashCode: "[I'm one request from CLIENT.]",
 	})
 	if err != nil {
-		log.Println("resp error from client:", err, "\nresponse:", stream)
-	}
-
-	// We have a client-side stream now.
-	streamForCli, err := client.ClientSideStreamFunc(ctx)
-	if err != nil {
-		log.Println("resp error from client:", err, "\nresponse:", streamForCli)
+		log.Println("resp error from client:", err, "\nresponse:", streamForServ)
 	}
 
 	//
@@ -60,14 +54,25 @@ func main() {
 	go func() {
 		for {
 			// Getting streaming data.
-			val, err := stream.Recv()
+			val, err := streamForServ.Recv()
 			if err == io.EOF {
 				fmt.Println("EOF Detect.")
 				break
 			}
+
+			if err != nil {
+				break
+			}
+
 			fmt.Println("[CLIENT] [GETTING STREAM DATA FROM SERVER]: ", val)
 		}
 	}()
+
+	// We have a client-side stream now.
+	streamForCli, err := client.ClientSideStreamFunc(ctx)
+	if err != nil {
+		log.Println("resp error from client:", err, "\nresponse:", streamForCli)
+	}
 
 	//
 	// Client-side streaming data.
@@ -88,6 +93,51 @@ func main() {
 			})
 			fmt.Println("[Client] [SENDING STREAM DATA TO SERVER]: ", strRandomVal)
 
+		}
+	}()
+
+	// We have a client-side stream now.
+	streamForBiDirect, err := client.BiDirectionalStreamFunc(ctx)
+	if err != nil {
+		log.Println("resp error from bi-direct:", err, "\nresponse:", streamForBiDirect)
+	}
+
+	//
+	// Bidirect-side streaming data.
+	//
+	go func() {
+		i := 0
+		for {
+			time.Sleep(1 * time.Second)
+			if i > 10 {
+				break
+			}
+			i++
+
+			_ = random.Int()
+			strRandomVal := strconv.Itoa(i + 12)
+			streamForCli.Send(&genpb.BasicRequest{
+				HashCode: strRandomVal,
+			})
+			fmt.Println("[BIDIRECT] [SENDING STREAM DATA TO SERVER]: ", strRandomVal)
+
+		}
+	}()
+
+	go func() {
+		for {
+			// Getting streaming data.
+			val, err := streamForBiDirect.Recv()
+			if err == io.EOF {
+				fmt.Println("EOF Detect.")
+				break
+			}
+
+			if err != nil {
+				break
+			}
+
+			fmt.Println("[BIDIRECT] [GETTING STREAM DATA FROM SERVER]: ", val)
 		}
 	}()
 
